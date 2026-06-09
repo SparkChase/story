@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { storyPages } from "./story";
 
 const firstIndex = 0;
@@ -9,9 +9,19 @@ export default function App() {
   const page = storyPages[current];
   const progress = useMemo(() => ((current + 1) / storyPages.length) * 100, [current]);
 
-  const goToPage = (index: number) => {
+  const goToPage = useCallback((index: number) => {
     setCurrent(Math.min(Math.max(index, firstIndex), lastIndex));
-  };
+  }, []);
+
+  useEffect(() => {
+    const nextPage = storyPages[current + 1];
+    if (!nextPage) {
+      return;
+    }
+
+    const image = new Image();
+    image.src = nextPage.image;
+  }, [current]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -26,36 +36,41 @@ export default function App() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [current]);
+  }, [current, goToPage]);
 
   return (
     <main className={`app-shell tone-${page.tone}`}>
-      <div className="ambient ambient-one" />
-      <div className="ambient ambient-two" />
-
       <header className="topbar">
-        <div className="brand-mark" aria-hidden="true">
-          <span>心</span>
+        <a className="skip-link" href="#story">
+          跳到故事内容
+        </a>
+        <div className="brand">
+          <span className="brand-mark" aria-hidden="true">
+            心
+          </span>
+          <div>
+            <p className="eyebrow">给莉莉的小绘本</p>
+            <h1>重点不是你看到了什么，而是我心里的样子</h1>
+          </div>
         </div>
-        <h1>重点不是你看到了什么，而是我心里的样子</h1>
-        <div className="page-count" aria-label={`第${current + 1}页，共${storyPages.length}页`}>
-          {String(current + 1).padStart(2, "0")} / {String(storyPages.length).padStart(2, "0")}
+        <div className="page-count" aria-label={`第 ${current + 1} 页，共 ${storyPages.length} 页`}>
+          {String(current + 1).padStart(2, "0")}
+          <span>/</span>
+          {String(storyPages.length).padStart(2, "0")}
         </div>
       </header>
 
-      <section className="reader" aria-live="polite">
-        <div className="art-stage">
-          <img className="storybook-image" src={page.image} alt={`第${page.id}页绘本插图：${page.title}`} />
-          <div className="floating-charm charm-a" aria-hidden="true">
-            星
-          </div>
-          <div className="floating-charm charm-b" aria-hidden="true">
-            心
-          </div>
-        </div>
+      <section className="reader" id="story" aria-live="polite">
+        <figure className="art-panel">
+          <img className="storybook-image" src={page.image} alt={`第 ${page.id} 页插图：${page.title}`} />
+          <figcaption>
+            <span>Chapter {String(page.id).padStart(2, "0")}</span>
+            <strong>{page.title}</strong>
+          </figcaption>
+        </figure>
 
         <article className="story-copy">
-          <p className="chapter-label">第{page.id}页</p>
+          <p className="chapter-label">第 {page.id} 页</p>
           <h2>{page.title}</h2>
           <div className="story-lines">
             {page.lines.map((line) => (
@@ -74,7 +89,7 @@ export default function App() {
           onClick={() => goToPage(current - 1)}
           disabled={current === firstIndex}
         >
-          ‹
+          <span aria-hidden="true">‹</span>
         </button>
 
         <div className="progress-wrap" aria-hidden="true">
@@ -87,8 +102,9 @@ export default function App() {
                 key={item.id}
                 className={index === current ? "dot is-active" : "dot"}
                 type="button"
-                title={`第${item.id}页`}
-                aria-label={`跳到第${item.id}页`}
+                title={`第 ${item.id} 页`}
+                aria-label={`跳到第 ${item.id} 页`}
+                aria-current={index === current ? "page" : undefined}
                 onClick={() => goToPage(index)}
               />
             ))}
@@ -103,7 +119,7 @@ export default function App() {
           onClick={() => goToPage(current + 1)}
           disabled={current === lastIndex}
         >
-          ›
+          <span aria-hidden="true">›</span>
         </button>
       </nav>
     </main>
